@@ -9,6 +9,7 @@
 #include "poly.h"
 #include "consts.h"
 
+// Init/expand commitment key with random bytes and AES256 CTR mode.
 void expand_commkey(commkey *ck, const uint8_t rho[SYMBYTES]) {
   int i,j;
   aes256ctr_ctx state;
@@ -56,6 +57,10 @@ void commit(comm *t, commrnd *r, const polyvecm *msg, const commkey *ck) {
     poly_trinary_preinit(&r->em.vec[i],&state);
   }
 
+  // Commitment scheme details need to be read in a separate paper from which they draw this scheme.
+  // However, it starts by converting to NTT. Then it does montgomery pointwise multiplication and accumulation. It also does
+  // polynomial addition and scaling of `t`.
+  // These steps generate the `t_0` and `t_i` polynomials which represent the 2 parts to the commitment scheme.
   polyvecl_ntt(&r->s);
   polyveck_ntt(&r->e);
   polyvecm_ntt(&r->em);

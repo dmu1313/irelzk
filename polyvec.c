@@ -57,6 +57,7 @@ void polyvec_invntt_tomont(polyvec *v) {
     poly_invntt_tomont(&v->vec[i]);
 }
 
+// Pointwise/element-wise multiply all polynomials in vector of polynomials `u` and `v` and accumulate into polynomial `r`.
 void polyvec_pointwise_acc_montgomery(poly *r, const polyvec *u, const polyvec *v) {
   int i;
   poly t;
@@ -68,6 +69,7 @@ void polyvec_pointwise_acc_montgomery(poly *r, const polyvec *u, const polyvec *
   }
 }
 
+// Pointwise/element-wise scale all polynomials in vector of polynomials by scalar `s`.
 void polyvec_scale_montgomery(polyvec *v, const polyvec *u, int32_t s) {
   int i;
   for(i=0;i<POLYVEC_LENGTH;i++)

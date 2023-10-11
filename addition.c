@@ -27,8 +27,13 @@ void addition_proof(proof *p, comm *t, commrnd *r, const uint8_t rho[SYMBYTES],
   poly v, vprime[R], tmp;
   keccak_state kecst;
 
+  // Get random bytes as a seed for future use
   randombytes(seed,SYMBYTES);
 
+  // Convert a and b to Two's Complement
+  // and store in msg.vec[0] and msg.vec[1]
+  // Store a + b in msg.vec[2] (Let c = a + b)
+  // Store the carry bit in msg.vec[3]
   for(i=0;i<64;i++) {
     f = (a[0] >> i) & 1;
     g = (b[0] >> i) & 1;
@@ -50,20 +55,23 @@ void addition_proof(proof *p, comm *t, commrnd *r, const uint8_t rho[SYMBYTES],
     msg.vec[3].coeffs[64+i] = x;
   }
 
-  memset(&msg.vec[M-2],0,sizeof(poly));
-  poly_uniform(&msg.vec[M-1],seed,nonce++);
+  memset(&msg.vec[M-2],0,sizeof(poly)); // Zero out the 2nd to last polynomial
+  poly_uniform(&msg.vec[M-1],seed,nonce++); // Get uniformly random polynomial coefficients.
+  // Not sure why they zero out R=4 of the coefficients of the last polynomial.
   for(i=0;i<R;i++)
     msg.vec[M-1].coeffs[i] = 0;
-  poly_ntt(&msg.vec[M-1]);
+  poly_ntt(&msg.vec[M-1]); // Convert last polynomial to NTT domain.
 
-  expand_commkey(&ck,rho);
-  commit(t,r,&msg,&ck);
-  polyveck_invntt(&t->t0);
-  polyveck_power2round(&t->t0,&t0low,&t->t0);
-  polyveck_ntt(&t->t0);
-  polyveck_ntt(&t0low);
+  expand_commkey(&ck,rho); // Init commitment key.
+  commit(t,r,&msg,&ck); // Commit to the message containing the numbers being summed and their result.
+  polyveck_invntt(&t->t0); // Inverse NTT
+  polyveck_power2round(&t->t0,&t0low,&t->t0); // Perform rounding on `t`
+  polyveck_ntt(&t->t0); // Convert to NTT
+  polyveck_ntt(&t0low); // Convert to NTT
 
-  opening_init(&t0low,r,&ck);
+  opening_init(&t0low,r,&ck); // Sets up variables necessary in the opening proof.
+
+  // Do lots of hashing of `t`.
   shake128_init(&kecst);
   shake128_absorb(&kecst,rho,SYMBYTES);
   shake128_absorb(&kecst,(uint8_t *)&t->t0,sizeof(polyveck));
@@ -72,7 +80,7 @@ void addition_proof(proof *p, comm *t, commrnd *r, const uint8_t rho[SYMBYTES],
   shake128_finalize(&kecst);
   shake128_squeeze(thash,SYMBYTES,&kecst);
   do {
-    opening_first(w1,seed,nonce);
+    opening_first(w1,seed,nonce); // Fiat shamir first part
     nonce += R*(K+L+M);
 
     shake128_init(&kecst);
@@ -81,9 +89,11 @@ void addition_proof(proof *p, comm *t, commrnd *r, const uint8_t rho[SYMBYTES],
     shake128_finalize(&kecst);
     shake128_squeezeblocks(chash,1,&kecst);
 
+
     product(&v,&msg,chash);
     poly_add(&tmp,&t->tm.vec[M-2],&msg.vec[M-2]);
     linear(vprime,&p->h,&msg,chash+SYMBYTES);
+
     shake128_init(&kecst);
     shake128_absorb(&kecst,chash,2*SYMBYTES);
     shake128_absorb(&kecst,(uint8_t *)&tmp,sizeof(poly));
@@ -94,7 +104,7 @@ void addition_proof(proof *p, comm *t, commrnd *r, const uint8_t rho[SYMBYTES],
     shake128_squeezeblocks(chash,1,&kecst);
 
     challenge_prehash(p->c,chash);
-    rej = opening_last(p->z,p->c,w1);
+    rej = opening_last(p->z,p->c,w1); // Fiat shamir second part with responses `z`
   } while(rej);
 
   t->tm.vec[M-2] = tmp;

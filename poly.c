@@ -79,6 +79,7 @@ void poly_uniform_preinit(poly *r, aes256ctr_ctx *state) {
   }
 }
 
+// Get uniformly random polynomial coefficients using AES256 in CTR mode.
 void poly_uniform(poly *r, const uint8_t seed[SYMBYTES], uint16_t nonce) {
   aes256ctr_ctx state;
   aes256ctr_init(&state,seed,nonce);
@@ -157,6 +158,7 @@ void poly_uniform_gamma(poly *r, const uint8_t seed[SYMBYTES], uint16_t nonce) {
   poly_uniform_gamma_preinit(r,&state);
 }
 
+// Perform modular reduction (think this is Barrett Reduction or might be centered binomial remainder algorithm).
 void poly_reduce(poly *r) {
   int i;
   __m256i f,t;
@@ -202,6 +204,7 @@ void poly_caddq(poly *r) {
   }
 }
 
+// Perform modular reduction (might be Barrett Reduction).
 void poly_freeze(poly *r) {
   int i;
   __m256i f,t;
@@ -229,6 +232,7 @@ void poly_neg(poly *r, const poly *a) {
   }
 }
 
+// Simply add the coefficients of a and b and store in r. Also mod r in poly_reduce.
 void poly_add(poly *r, const poly *a, const poly *b) {
   int i;
   __m256i f,g;
@@ -257,6 +261,7 @@ void poly_sub(poly *r, const poly *a, const poly *b) {
   poly_reduce(r);
 }
 
+// Convert polynomial coefficients to NTT domain and then do modular reduction.
 void poly_ntt(poly *r) {
   ntt_avx(r->coeffs,qdata);
   poly_reduce(r);
@@ -272,6 +277,7 @@ void poly_invntt_tomont(poly *r) {
   invntt_avx(r->coeffs,qdata);
 }
 
+// Multiplies (pointwise/element-wise) polynomial coefficients in montgomery form.
 void poly_pointwise_montgomery(poly *r, const poly *a, const poly *b)
 {
   int i;
@@ -298,6 +304,7 @@ void poly_pointwise_montgomery(poly *r, const poly *a, const poly *b)
   }
 }
 
+// Scale polynomial in montgomery form by a scalar `s`.
 void poly_scale_montgomery(poly *r, const poly *a, int32_t s)
 {
   int i;
