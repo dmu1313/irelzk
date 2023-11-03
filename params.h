@@ -15,6 +15,7 @@
 #define M 15
 #endif
 
+// Make thread blocks as big as possible to maximize GPU utilization.
 #define N 128
 #define Q 1073479681
 #define GAMMA1 (1 << 18)
