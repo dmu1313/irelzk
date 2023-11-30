@@ -26,6 +26,7 @@ void addition_proof(proof *p, comm *t, commrnd *r, const uint8_t rho[SYMBYTES],
   polyveck t0low, w1[R];
   poly v, vprime[R], tmp;
   keccak_state kecst;
+  kecst.mdctx = NULL;
 
   // Get random bytes as a seed for future use
   randombytes(seed,SYMBYTES);
@@ -118,6 +119,7 @@ int addition_proof_verify(const proof *p, const comm *t, const uint8_t rho[SYMBY
   poly v, vprime[R];
   polyveck w1[R];
   keccak_state kecst;
+  kecst.mdctx = NULL;
 
   shake128_init(&kecst);
   shake128_absorb(&kecst,rho,SYMBYTES);

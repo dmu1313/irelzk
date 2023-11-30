@@ -9,8 +9,29 @@
 #include <stdint.h>
 #include "fips202.h"
 
+#include "debug.h"
+#include <string.h>
+#define USE_SHA2
+#define SHA_256_BYTES 32
+
+
 #define NROUNDS 24
 #define ROL(a, offset) ((a << offset) ^ (a >> (64-offset)))
+
+void init_new_context(keccak_state *state) {
+  if (state->mdctx != NULL) {
+    EVP_MD_CTX_free(state->mdctx);
+    state->mdctx = NULL;
+  }
+  if((state->mdctx = EVP_MD_CTX_new()) == NULL) {
+    printf("Error creating context\n");
+    fflush(stdout);
+  }
+  if(1 != EVP_DigestInit_ex(state->mdctx, EVP_sha256(), NULL)) {
+    printf("Error initializing digest\n");
+    fflush(stdout);
+  }
+}
 
 /*************************************************
 * Name:        load64
@@ -355,10 +376,14 @@ static void KeccakF1600_StatePermute(uint64_t state[25])
 **************************************************/
 static void keccak_init(keccak_state *state)
 {
+#ifdef USE_SHA2
+  init_new_context(state);
+#else
   unsigned int i;
   for(i=0;i<25;i++)
     state->s[i] = 0;
   state->pos = 0;
+#endif
 }
 
 /*************************************************
@@ -570,7 +595,11 @@ void shake128_init(keccak_state *state)
 **************************************************/
 void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen)
 {
+#ifdef USE_SHA2
+  EVP_DigestUpdate(state->mdctx, in, inlen);
+#else
   state->pos = keccak_absorb(state->s, SHAKE128_RATE, state->pos, in, inlen);
+#endif
 }
 
 /*************************************************
@@ -582,8 +611,12 @@ void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen)
 **************************************************/
 void shake128_finalize(keccak_state *state)
 {
+#ifdef USE_SHA2
+  // nothing to do here
+#else
   keccak_finalize(state->s, SHAKE128_RATE, state->pos, 0x1F);
   state->pos = 0;
+#endif
 }
 
 /*************************************************
@@ -601,7 +634,28 @@ void shake128_finalize(keccak_state *state)
 **************************************************/
 void shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state)
 {
+#ifdef USE_SHA2
+  if (nblocks == 0) {
+    return;
+  }
+
+  int bytes_left = nblocks * SHAKE128_RATE;
+  unsigned char temp[SHA_256_BYTES];
+  int num_sha_256_hashes = (bytes_left + (SHA_256_BYTES - 1)) / SHA_256_BYTES;
+  for (int i = 0; i < num_sha_256_hashes - 1; i++) {
+    EVP_DigestFinal_ex(state->mdctx, temp, NULL);
+    memcpy(out, temp, SHA_256_BYTES);
+    out += SHA_256_BYTES;
+    EVP_MD_CTX_reset(state->mdctx);
+    EVP_DigestInit_ex(state->mdctx, EVP_sha256(), NULL);
+    EVP_DigestUpdate(state->mdctx, temp, SHA_256_BYTES);
+  }
+  bytes_left = bytes_left - (num_sha_256_hashes - 1) * SHA_256_BYTES;
+  EVP_DigestFinal_ex(state->mdctx, &temp, NULL);
+  memcpy(out, temp, bytes_left);
+#else
   keccak_squeezeblocks(out, nblocks, state->s, SHAKE128_RATE);
+#endif
 }
 
 /*************************************************
@@ -617,7 +671,24 @@ void shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state)
 **************************************************/
 void shake128_squeeze(uint8_t *out, size_t outlen, keccak_state *state)
 {
+#ifdef USE_SHA2
+  int bytes_left = outlen;
+  char temp[SHA_256_BYTES];
+  int num_sha_256_hashes = (bytes_left + (SHA_256_BYTES - 1)) / SHA_256_BYTES;
+  for (int i = 0; i < num_sha_256_hashes - 1; i++) {
+    EVP_DigestFinal_ex(state->mdctx, &temp, NULL);
+    memcpy(out, temp, SHA_256_BYTES);
+    out += SHA_256_BYTES;
+    EVP_MD_CTX_reset(state->mdctx);
+    EVP_DigestInit_ex(state->mdctx, EVP_sha256(), NULL);
+    EVP_DigestUpdate(state->mdctx, temp, SHA_256_BYTES);
+  }
+  bytes_left = bytes_left - (num_sha_256_hashes - 1) * 256;
+  EVP_DigestFinal_ex(state->mdctx, &temp, NULL);
+  memcpy(out, temp, bytes_left);
+#else
   state->pos = keccak_squeeze(out, outlen, state->s, SHAKE128_RATE, state->pos);
+#endif
 }
 
 /*************************************************

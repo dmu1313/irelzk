@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <openssl/evp.h>
+
 #define SHAKE128_RATE 168
 #define SHAKE256_RATE 136
 #define SHA3_256_RATE 136
@@ -14,6 +16,7 @@
 typedef struct {
   uint64_t s[25];
   unsigned int pos;
+  EVP_MD_CTX *mdctx;
 } keccak_state;
 
 #define shake128_init FIPS202_NAMESPACE(_shake128_init)

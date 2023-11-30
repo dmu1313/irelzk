@@ -51,11 +51,14 @@ test_ntt: test_ntt.o ntt.o invntt.o consts.o rounding.o poly.o aes256ctr.o rando
 test_poly: test_poly.o ntt.o invntt.o consts.o rounding.o poly.o aes256ctr.o randombytes.o
 	$(CC) $(CFLAGS) $^ -o $@
 
+debug.o: debug.c debug.h Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+
 test_addition: test_addition.o ntt.o invntt.o consts.o rounding.o poly.o polyveck.o polyvecl.o \
   polyvecm_addition.o comm_addition.o opening_addition.o \
   product_addition.o linear_addition.o addition_addition.o \
-  aes256ctr.o fips202.o randombytes.o cpucycles.o speed_print.o
-	$(CC) $(CFLAGS) -DADDITION_PROOF $^ -o $@
+  aes256ctr.o fips202.o randombytes.o cpucycles.o speed_print.o debug.o
+	$(CC) $(CFLAGS) -DADDITION_PROOF $^ -o $@ -lcrypto -lssl -pg
 
 test_mult: test_mult.o ntt.o invntt.o consts.o rounding.o poly.o polyveck.o polyvecl.o \
   polyvecm_mult.o comm_mult.o opening_mult.o \
