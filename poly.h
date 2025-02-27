@@ -5,6 +5,9 @@
 #include "aes256ctr.h"
 #include "params.h"
 
+
+// extern "C" {
+
 typedef struct {
   int32_t coeffs[N];
 } poly __attribute__((aligned(32)));
@@ -71,5 +74,7 @@ void poly_decompose(poly *a1, poly *a0, poly *a);
 void poly_makehint(poly *h, const poly *a1, poly *a0);
 #define poly_usehint NAMESPACE(_poly_usehint)
 void poly_usehint(poly *b1, poly *a, const poly *h);
+
+// }
 
 #endif

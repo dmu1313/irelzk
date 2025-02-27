@@ -18,8 +18,8 @@
 // Make thread blocks as big as possible to maximize GPU utilization.
 #define N 128
 #define Q 1073479681
-#define GAMMA1 (1 << 18)
-#define GAMMA2 (Q-1)/(1 << 13)
+#define GAMMA1 (1 << 18) // 262144
+#define GAMMA2 (Q-1)/(1 << 13) // 131040
 #define D 14
 #define BETA 32
 #define R 4
@@ -27,5 +27,16 @@
 #define L 10
 
 #define SYMBYTES 32
+
+// 1073479681 = 4095 * 2^18 + 1
+#define MODULUS 1073479681
+#define ROOT 
+#define ROOT_INVERSE 
+#define ROOT_PW (1 << 18)
+
+// const int MODULUS = 7340033;
+// const int ROOT = 2187;//3;//5;
+// const int ROOT_INVERSE = 4665133;//2446678;//4404020;
+// const int ROOT_PW = 1 << 20;
 
 #endif
